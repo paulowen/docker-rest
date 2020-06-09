@@ -2,8 +2,8 @@
 
 version: '3.7'
 services:
-  flask:
-    image: webapp-flask
+  docker-rest:
+    image: paulowen/docker-rest:latest
     build:
       context: .
       dockerfile: Dockerfile-rest
