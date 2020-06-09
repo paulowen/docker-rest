@@ -6,7 +6,7 @@ services:
     image: webapp-flask
     build:
       context: .
-      dockerfile: Dockerfile-flask
+      dockerfile: Dockerfile-rest
     networks:
       bridged_lan:
         ipv4_address: 10.15.1.134

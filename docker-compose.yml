@@ -3,11 +3,11 @@
 version: '3.7'
 
 services:
-  flask:
-    image: docker-flask
+  docker-rest:
+    image: docker-rest
     build:
       context: .
-      dockerfile: Dockerfile-flask
+      dockerfile: Dockerfile-rest
     container_name: docker-rest
     env_file: .env
     environment:
@@ -24,8 +24,8 @@ services:
       - /dev/ttyACM0:/dev/ttyACM0
     restart: unless-stopped
 
-  nginx:
-    image: docker-flask-nginx
+  docker-rest-nginx:
+    image: docker-rest-nginx
     build:
       context: .
       dockerfile: Dockerfile-nginx
@@ -33,4 +33,4 @@ services:
     ports:
       - 5000:80
     depends_on:
-      - flask
+      - docker-rest
