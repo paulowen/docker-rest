@@ -67,7 +67,6 @@ def docker_compose_cmd(cmd=None, name=None):
             return "The docker-compose definition %s was not found in %s" % (name, docker_compose_root), 404
         else:
             command = "docker-compose -f %s/%s/%s %s" % (docker_compose_root, name, docker_compose_filename, cmd)
-            print(command.split())
 
             try:
                 result = subprocess.run(command.split(), text=True, stdout=subprocess.PIPE,
