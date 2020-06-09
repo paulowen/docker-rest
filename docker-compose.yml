@@ -1,0 +1,36 @@
+# docker-compose.yml
+
+version: '3.7'
+
+services:
+  flask:
+    image: docker-flask
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+    container_name: docker-rest
+    env_file: .env
+    environment:
+      - TZ=Australia/Melbourne
+      - DOCKER_COMPOSE_ROOT=/opt/docker
+      - DOCKER_COMPOSE_FILENAME=docker-compose.yml
+      - DOCKER_COMPOSE_TARGETS=homeassistant, nodered, traefik, pihole
+      - IP_WHITELIST=10.15.0.0/22, 10.10.1.0/24
+    volumes:
+      - './:/app'
+      - '/opt/docker:/opt/docker'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    restart: unless-stopped
+
+  nginx:
+    image: docker-flask-nginx
+    build:
+      context: .
+      dockerfile: Dockerfile-nginx
+    container_name: docker-rest-nginx
+    ports:
+      - 5000:80
+    depends_on:
+      - flask

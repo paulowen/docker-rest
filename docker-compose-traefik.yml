@@ -1,0 +1,39 @@
+# docker-compose.yml
+
+version: '3.7'
+services:
+  flask:
+    image: webapp-flask
+    build:
+      context: .
+      dockerfile: Dockerfile-flask
+    networks:
+      bridged_lan:
+        ipv4_address: 10.15.1.134
+    env_file: .env
+    environment:
+      - TZ=Australia/Melbourne
+      - DOCKER_COMPOSE_ROOT=/opt/docker
+      - DOCKER_COMPOSE_FILENAME=docker-compose.yml
+      - DOCKER_COMPOSE_TARGETS=homeassistant, nodered, traefik, pihole
+      - IP_WHITELIST=10.15.0.0/22, 10.10.1.0/24
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.docker-rest.entrypoints=https"
+      - "traefik.http.routers.docker-rest.rule=Host(`docker-rest.$DOMAINNAME`)"
+      - "traefik.http.routers.docker-rest.tls=true"
+      ## HTTP Services
+      - "traefik.http.routers.docker-rest.service=docker-rest"
+      - "traefik.http.services.docker-rest.loadbalancer.server.port=5000"
+    volumes:
+      - './:/app'
+      - '/opt/docker:/opt/docker'
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    restart: unless-stopped
+
+networks:
+  bridged_lan:
+    external: true
