@@ -91,7 +91,7 @@ def docker_compose_pull(name=None):
         for x in parameters["service"]:
             command = "%s %s" % (command, x)
 
-    result = executor.submit_stored(docker_compose_cmd, command, name)
+    result = executor.submit(docker_compose_cmd, command, name).result()
 
     if "image is up to date" in result:
         return "up-to-date"
@@ -110,7 +110,7 @@ def docker_compose_recreate(name=None):
     if "force" in parameters:
         command = "%s --force" % command
 
-    result = executor.submit_stored(docker_compose_cmd, command, name)
+    result = executor.submit(docker_compose_cmd, command, name).result()
 
     if "up-to-date" in result:
         return "up-to-date"
