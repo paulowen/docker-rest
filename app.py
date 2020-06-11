@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_executor import Executor
 from netaddr import IPNetwork, IPAddress
 import docker
 import subprocess
@@ -11,6 +12,7 @@ docker_compose_filename_env = "DOCKER_COMPOSE_FILENAME"
 docker_compose_targets_env = "DOCKER_COMPOSE_TARGETS"
 
 app = Flask(__name__)
+executor = Executor(app)
 
 client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 
@@ -89,7 +91,7 @@ def docker_compose_pull(name=None):
         for x in parameters["service"]:
             command = "%s %s" % (command, x)
 
-    result = docker_compose_cmd(command, name)
+    result = executor.submit_stored(docker_compose_cmd, command, name)
 
     if "image is up to date" in result:
         return "up-to-date"
@@ -108,7 +110,7 @@ def docker_compose_recreate(name=None):
     if "force" in parameters:
         command = "%s --force" % command
 
-    result = docker_compose_cmd(command, name)
+    result = executor.submit_stored(docker_compose_cmd, command, name)
 
     if "up-to-date" in result:
         return "up-to-date"
