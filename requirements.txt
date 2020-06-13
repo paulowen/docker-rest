@@ -2,5 +2,6 @@ docker
 docker-compose
 flask
 flask_executor
-uwsgidecorators
 netaddr
+pyyaml
+uwsgidecorators

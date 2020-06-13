@@ -1,10 +1,11 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_executor import Executor
 from netaddr import IPNetwork, IPAddress
 import docker
-import subprocess
 import os
+import subprocess
 import uwsgidecorators
+import yaml
 
 ip_whitelist_env = "IP_WHITELIST"
 docker_compose_root_env = "DOCKER_COMPOSE_ROOT"
@@ -63,7 +64,7 @@ def valid_ip():
         return True
 
 
-def docker_compose_cmd(cmd=None, name=None):
+def docker_compose_cmd_execute(cmd=None, name=None):
     if valid_ip() and (name is not None):
         if (docker_compose_targets is not None) and (name not in docker_compose_targets):
             return "The docker-compose definition %s was not found in %s" % (name, docker_compose_root), 404
@@ -82,42 +83,67 @@ def docker_compose_cmd(cmd=None, name=None):
         return "The requested URL was not found or permitted on the server", 404
 
 
-@app.route('/docker-compose/pull/<name>', methods=['POST'])
-def docker_compose_pull(name=None):
-    command = "pull"
-    parameters = request.args.to_dict(flat=False)
+def docker_compose_cmd(name=None, parameters=None, base_command=None, checks=None):
+    commands_dict = {}
 
     if "service" in parameters:
-        for x in parameters["service"]:
-            command = "%s %s" % (command, x)
-
-    result = executor.submit(docker_compose_cmd, command, name).result()
-
-    if "image is up to date" in result:
-        return "up-to-date"
-    elif "pull complete" in result:
-        return "updated"
+        for service in parameters["service"]:
+            command = "%s %s" % (base_command, service)
+            commands_dict[service] = command
     else:
-        return result
+        with open(r'%s/%s/%s' % (docker_compose_root, name, docker_compose_filename)) as file:
+            compose_dict = yaml.load(file, Loader=yaml.FullLoader)
+
+            if "services" in compose_dict:
+                if len(compose_dict["services"].keys()) > 0:
+                    for service_key in compose_dict["services"].keys():
+                        command = "%s %s" % (base_command, service_key)
+                        commands_dict[service_key] = command
+
+    results_dict = {}
+
+    for service,command in commands_dict.items():
+        result = executor.submit(docker_compose_cmd_execute, command, name).result()
+
+        final_response = None
+        for term,response in checks.items():
+            if term in result:
+                final_response = response
+
+        if final_response is None:
+            final_response = result
+
+        results_dict[service] = final_response
+
+    return jsonify(results_dict)
+
+
+@app.route('/docker-compose/pull/<name>', methods=['POST'])
+def docker_compose_pull(name=None):
+    base_command = "pull"
+    parameters = request.args.to_dict(flat=False)
+    checks = {
+        "image is up to date": "up-to-date",
+        "pull complete": "updated"
+    }
+    return docker_compose_cmd(name, parameters, base_command, checks)
 
 
 @app.route('/docker-compose/recreate/<name>', methods=['POST'])
 def docker_compose_recreate(name=None):
-    command = "up -d"
-
+    base_command = "up -d"
     parameters = request.args.to_dict(flat=False)
+    checks = {
+        "up-to-date": "up-to-date",
+        "Recreating": "recreated",
+        "Creating": "created",
+        "Starting": "started"
+    }
 
     if "force" in parameters:
-        command = "%s --force" % command
+        base_command = "%s --force" % base_command
 
-    result = executor.submit(docker_compose_cmd, command, name).result()
-
-    if "up-to-date" in result:
-        return "up-to-date"
-    elif "Recreating" in result:
-        return "recreated"
-    else:
-        return result
+    return docker_compose_cmd(name, parameters, base_command, checks)
 
 
 @app.route('/docker/status/<name>', methods=['GET'])
@@ -136,7 +162,7 @@ def docker_stop(name=None):
             container.stop()
             container = client.containers.get(name)
         except docker.errors.APIError as e:
-            return "%s %s" % (e.returncode, e.output), 500
+            return "%s %s" % (e.status_code, e.response), 500
 
     return container.status
 
@@ -150,7 +176,7 @@ def docker_start(name=None):
             container.start()
             container = client.containers.get(name)
         except docker.errors.APIError as e:
-            return "%s %s" % (e.returncode, e.output), 500
+            return "%s %s" % (e.status_code, e.response), 500
 
     return container.status
 
@@ -164,7 +190,7 @@ def docker_restart(name=None):
             container.restart()
             container = client.containers.get(name)
         except docker.errors.APIError as e:
-            return "%s %s" % (e.returncode, e.output), 500
+            return "%s %s" % (e.status_code, e.response), 500
 
     return container.status
 
