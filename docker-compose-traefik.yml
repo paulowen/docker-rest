@@ -4,9 +4,6 @@ version: '3.7'
 services:
   docker-rest:
     image: paulowen/docker-rest:latest
-    build:
-      context: .
-      dockerfile: Dockerfile-rest
     networks:
       bridged_lan:
         ipv4_address: 10.15.1.134

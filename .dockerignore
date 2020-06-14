@@ -1,0 +1,16 @@
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.env
+.git
+.gitignore
+.idea
+.vscode
+**/__pycache__
+venv
+.dockerignore
+docker-compose*
+Dockerfile*
+
