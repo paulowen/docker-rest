@@ -16,8 +16,6 @@ services:
     volumes:
       - '/opt/docker:/opt/docker'
       - '/var/run/docker.sock:/var/run/docker.sock:ro'
-    devices:
-      - /dev/ttyACM0:/dev/ttyACM0
     restart: unless-stopped
 
   docker-rest-nginx:
