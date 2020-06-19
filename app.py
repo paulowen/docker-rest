@@ -65,7 +65,7 @@ def valid_ip():
 
 
 def docker_compose_cmd_execute(cmd=None, name=None):
-    if valid_ip() and (name is not None):
+    if name is not None:
         if (docker_compose_targets is not None) and (name not in docker_compose_targets):
             return "The docker-compose definition %s was not found in %s" % (name, docker_compose_root), 404
         else:
@@ -80,7 +80,7 @@ def docker_compose_cmd_execute(cmd=None, name=None):
 
             return '%s' % result
     else:
-        return "The requested URL was not found or permitted on the server", 404
+        return "The requested URL was not found on the server", 404
 
 
 def docker_compose_cmd(name=None, parameters=None, base_command=None, checks=None):
@@ -193,6 +193,14 @@ def docker_restart(name=None):
             return "%s %s" % (e.status_code, e.response), 500
 
     return container.status
+
+
+@app.before_request
+def before_request_func():
+    if valid_ip():
+        return None
+    else:
+        return "The client request has been refused through IP whitelist verification.", 404
 
 
 @uwsgidecorators.postfork
