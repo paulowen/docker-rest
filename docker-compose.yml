@@ -16,12 +16,6 @@ services:
     volumes:
       - '/opt/docker:/opt/docker'
       - '/var/run/docker.sock:/var/run/docker.sock:ro'
-    restart: unless-stopped
-
-  docker-rest-nginx:
-    image: paulowen/docker-rest-nginx:latest
-    container_name: docker-rest-nginx
     ports:
       - 5000:80
-    depends_on:
-      - docker-rest
+    restart: unless-stopped
