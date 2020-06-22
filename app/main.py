@@ -13,6 +13,11 @@ docker_compose_root_env = "DOCKER_COMPOSE_ROOT"
 docker_compose_filename_env = "DOCKER_COMPOSE_FILENAME"
 docker_compose_targets_env = "DOCKER_COMPOSE_TARGETS"
 
+global ip_whitelist
+global docker_compose_root
+global docker_compose_filename
+global docker_compose_targets
+
 
 # class Settings(BaseSettings):
 #     ip_whitelist: List[str] = None
@@ -62,11 +67,6 @@ def parse_list(listenv):
 #     print("%s: %s" % (docker_compose_targets_env, docker_compose_targets))
 
 #     return Settings(ip_whitelist=ip_whitelist, docker_compose_targets=docker_compose_targets, docker_compose_root=docker_compose_root, docker_compose_filename=docker_compose_filename)
-
-global ip_whitelist
-global docker_compose_root
-global docker_compose_filename
-global docker_compose_targets
 
 def build_env_lists():
     global ip_whitelist
@@ -164,7 +164,6 @@ def docker_compose_cmd(name=None, services=None, base_command=None, checks=None)
         return Response("The requested URL was not found on the server", status_code=404)
 
 
-
 @app.post("/docker-compose/pull/{name}")
 async def docker_compose_pull(name: str = None, service: List[str] = Query(None)):
     base_command = "pull"
@@ -173,12 +172,13 @@ async def docker_compose_pull(name: str = None, service: List[str] = Query(None)
         "image is up to date": "up-to-date",
         "pull complete": "updated"
     }
+
     return docker_compose_cmd(name, service, base_command, checks)
 
 
 @app.post("/docker-compose/recreate/{name}")
-async def docker_compose_recreate(name: str, force: bool = False, service: List[str] = Query(None)):
-    base_command = "up -d"
+async def docker_compose_recreate(name: str, detach: bool = False, force: bool = False, service: List[str] = Query(None)):
+    base_command = "up"
 
     checks = {
         "up-to-date": "up-to-date",
@@ -187,8 +187,22 @@ async def docker_compose_recreate(name: str, force: bool = False, service: List[
         "Starting": "started"
     }
 
+    if detach:
+        base_command = "%s --detach" % base_command
+
     if force:
         base_command = "%s --force" % base_command
+
+    return docker_compose_cmd(name, service, base_command, checks)
+
+
+@app.post("/docker-compose/restart/{name}")
+async def docker_compose_restart(name: str = None, service: List[str] = Query(None)):
+    base_command = "restart"
+
+    checks = {
+        "Restarting": "restarted"
+    }
 
     return docker_compose_cmd(name, service, base_command, checks)
 
