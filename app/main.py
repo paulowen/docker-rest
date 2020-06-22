@@ -159,7 +159,7 @@ def docker_compose_cmd(name=None, services=None, base_command=None, checks=None)
 
                 results_dict[service] = final_response
 
-            return json.dumps(results_dict)
+            return results_dict
     else:
         return Response("The requested URL was not found on the server", status_code=404)
 
