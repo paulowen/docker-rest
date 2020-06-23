@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Depends, Query, Request, Response
+from fastapi import FastAPI, Query, Request, Response
 from netaddr import IPNetwork, IPAddress
-# from pydantic import BaseSettings, validator
 from typing import List
 import docker
-import json
+import docker.errors
 import os
 import subprocess
 import yaml
@@ -19,24 +18,6 @@ global docker_compose_filename
 global docker_compose_targets
 
 
-# class Settings(BaseSettings):
-#     ip_whitelist: List[str] = None
-#     # ip_whitelist: list = None
-#     docker_compose_root: str = "/opt/docker"
-#     docker_compose_filename: str = "docker-compose.yml"
-#     docker_compose_targets: List[str] = None
-#     # docker_compose_targets: list = None
-
-#     @validator('ip_whitelist', pre=True)
-#     def json_decode(cls, v):
-#         if isinstance(v, str):
-#             try:
-#                 return json.loads(v)
-#             except ValueError:
-#                 pass
-#         return v
-
-
 def parse_list(listenv):
     if (listenv is not None) and (len(listenv) > 0):
         targetlist = listenv.split(",")
@@ -44,29 +25,6 @@ def parse_list(listenv):
     else:
         return None
 
-
-# @lru_cache()
-# def get_settings():
-#     ip_whitelist = parse_list(os.environ.get(ip_whitelist_env))
-#     # ip_whitelist = os.environ.get(ip_whitelist_env)
-
-#     docker_compose_targets = parse_list(os.environ.get(docker_compose_targets_env))
-#     # docker_compose_targets = os.environ.get(docker_compose_targets_env)
-
-#     docker_compose_root = os.environ.get(docker_compose_root_env)
-#     if docker_compose_root is None:
-#         docker_compose_root = "/opt/docker"
-
-#     docker_compose_filename = os.environ.get(docker_compose_filename_env)
-#     if docker_compose_filename is None:
-#         docker_compose_filename = "docker-compose.yml"
-
-#     print("%s: %s" % (ip_whitelist_env, ip_whitelist))
-#     print("%s: %s" % (docker_compose_root_env, docker_compose_root))
-#     print("%s: %s" % (docker_compose_filename_env, docker_compose_filename))
-#     print("%s: %s" % (docker_compose_targets_env, docker_compose_targets))
-
-#     return Settings(ip_whitelist=ip_whitelist, docker_compose_targets=docker_compose_targets, docker_compose_root=docker_compose_root, docker_compose_filename=docker_compose_filename)
 
 def build_env_lists():
     global ip_whitelist
@@ -126,7 +84,8 @@ def docker_compose_cmd_execute(cmd=None, name=None):
 def docker_compose_cmd(name=None, services=None, base_command=None, checks=None):
     if name is not None:
         if (docker_compose_targets is not None) and (name not in docker_compose_targets):
-            return Response("The docker-compose definition %s was not found in %s" % (name, docker_compose_root), status_code=404)
+            return Response("The docker-compose definition %s was not found in %s" % (
+                name, docker_compose_root), status_code=404)
         else:
             commands_dict = {}
 
@@ -146,11 +105,11 @@ def docker_compose_cmd(name=None, services=None, base_command=None, checks=None)
 
             results_dict = {}
 
-            for service,command in commands_dict.items():
+            for service, command in commands_dict.items():
                 result = docker_compose_cmd_execute(command, name)
 
                 final_response = None
-                for term,response in checks.items():
+                for term, response in checks.items():
                     if term in result:
                         final_response = response
 
@@ -177,7 +136,8 @@ async def docker_compose_pull(name: str = None, service: List[str] = Query(None)
 
 
 @app.post("/docker-compose/recreate/{name}")
-async def docker_compose_recreate(name: str, detach: bool = False, force: bool = False, service: List[str] = Query(None)):
+async def docker_compose_recreate(
+        name: str, detach: bool = False, force: bool = False, service: List[str] = Query(None)):
     base_command = "up"
 
     checks = {
