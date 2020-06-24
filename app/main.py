@@ -135,9 +135,8 @@ async def docker_compose_pull(name: str = None, service: List[str] = Query(None)
     return docker_compose_cmd(name, service, base_command, checks)
 
 
-@app.post("/docker-compose/recreate/{name}")
-async def docker_compose_recreate(
-        name: str, detach: bool = False, force: bool = False, service: List[str] = Query(None)):
+@app.post("/docker-compose/up/{name}")
+async def docker_compose_up(name: str, detach: bool = False, force: bool = False, service: List[str] = Query(None)):
     base_command = "up"
 
     checks = {
